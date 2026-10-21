@@ -12,13 +12,13 @@ const FORMATS = [
         buildPath: 'dist/twine.js',
     },
     {
-        name: 'Harlowe 3 to JSON',
+        name: 'Harlowe 3 to JSON (blindstack)',
         version: VERSION,
         description: 'Convert Harlowe 3-formatted Twine story to JSON',
         scriptPath: 'src/twine-to-json.js',
         templatePath: 'templates/json.html',
         commandString: 'twineToJSON("harlowe-3")',
-        buildPath: 'dist/harlowe-3.js',
+        buildPath: 'dist/format.js',
     },
 ];
 

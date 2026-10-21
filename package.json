@@ -1,19 +1,33 @@
 {
-  "name": "twine-to-json (custom)",
+  "name": "twine-to-json (blindstack)",
   "version": "0.0.6",
   "description": "Convert Twine stories to JSON for a variety of formats.",
   "scripts": {
     "build": "node ./src/build.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "watch": "node watch.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dionysus/twine-to-json.git"
   },
-  "author": "Dionysus Cho",
+  "author": "dionysus",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/dionysus/twine-to-json/issues"
   },
-  "homepage": "https://github.com/dionysus/twine-to-json#readme"
+  "homepage": "https://github.com/dionysus/twine-to-json#readme",
+  "devDependencies": {
+    "chai": "^3.4.1",
+    "express": "^4.13.3",
+    "jsdom": "^16.3.0",
+    "uglify-js": "^2.6.1",
+    "watch": "^0.16.0"
+  },
+  "dependencies": {
+    "gh-pages": "^3.1.0",
+    "jsdom-global": "^3.0.2",
+    "mocha": "^8.0.1"
+  }
 }

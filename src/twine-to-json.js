@@ -62,35 +62,14 @@ function validate(format) {
   }
 }
 
-/**
- * Convert the HTML element for a story passage to JSON.
- */
-
-// "passages": [
-//     {
-//       "name": "Untitled Passage",
-//       "tags": "speaker:librarian",
-//       "id": "1",
-//       "text": "Oh! I almost didn't see you there, little dude!\n\n[[Hmmm...]]",
-//       "links": [
-//         {
-//           "linkText": "Hmmm...",
-//           "passageName": "Hmmm...",
-//           "original": "[[Hmmm...]]"
-//         }
-//       ],
-//       "hooks": [],
-//       "cleanText": "Oh! I almost didn't see you there, little dude!"
-//     },
-
 function processPassageElement(passageElement, format) {
   const passageMeta = getElementAttributes(passageElement);
   const result = {
-    name: passageMeta.name,
-    tags: passageMeta.tags,
-    id: passageMeta.pid,
+    id: passageMeta.name,
+    // tags: passageMeta.tags,
+    pid: passageMeta.pid,
   };
-  result.speaker = extractPassageSpeaker(passageMeta.tags)
+  result.meta = parseMetaTags(passageMeta.tags)
   result.text = passageElement.innerText.trim();
   Object.assign(result, processPassageText(result.text, format));
   result.cleanText = sanitizeText(
@@ -148,20 +127,20 @@ function extractLinksAtIndex(passageText, currentIndex) {
     );
     if (leftSplit.length === 2) {
       return {
-        linkText: leftSplit[1].trim(),
-        passageName: leftSplit[0].trim(),
+        text: leftSplit[1].trim(),
+        targetId: leftSplit[0].trim(),
         original: original,
       };
     } else if (rightSplit.length === 2) {
       return {
-        linkText: rightSplit[0].trim(),
-        passageName: rightSplit[1].trim(),
+        text: rightSplit[0].trim(),
+        targetId: rightSplit[1].trim(),
         original: original,
       };
     } else {
       return {
-        linkText: link.trim(),
-        passageName: link.trim(),
+        text: link.trim(),
+        targetId: link.trim(),
         original: original,
       };
     }
@@ -198,13 +177,23 @@ function extractLeftHooksAtIndex(passageText, currentIndex) {
   }
 }
 
+const tagKeys = ["speaker", "emotion"]
+const speaker_prefix = "speaker:"
+const delimiter = ":"
+const default_meta = {
+  speaker: "",
+  emotion: ""
+}
 
-function extractPassageSpeaker(passageMeta) {
-  for (tag in passageMeta.tags){
-    if (stringStartsWith(tag, "speaker:")) {
-      return trimPrefix(passageMeta, "speaker:")
-    }
+// parses "ABC:XYZ" tags if valid 
+function parseMetaTags(tags) {
+  const raw_tags = tags.split(" ")
+  let metadata = {}
+  for (const tag of raw_tags) {
+    let [key, value] = tag.split(delimiter, 2)
+    metadata[key] = value
   }
+  return metadata
 }
 
 
