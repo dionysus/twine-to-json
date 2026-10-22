@@ -354,25 +354,26 @@ function getSubstringBetweenBrackets(
 }
 
 
-function parseTrailingDirectives(passageText, startIndex) {
-  // Matches <!--showif: ...--> or <!--action: ...--> (tolerant of --> and --!>)
-  // const directiveRegex = /^\\s*<!--(showif|actions):\\s*([\\s\\S]*?)--[!>]/i;
-  const directiveRegex = /^\\s*<!--(showif|actions):\\s*([\\s\\S]*?)--!?>/i;
 
-  
+function parseTrailingDirectives(passageText, startIndex) {
+  // Matches a single <!--showif: ...--> or <!--action: ...--> block per iteration
+  // Using --!?> guarantees consuming both standard '-->' and typo '--!>'
+  const directiveRegex = /^\\s*<!--(showif|action):\\s*([\\s\\S]*?)--!?>/i;
+
   const show_if = [];
   const actions = [];
   let currentIndex = startIndex;
 
+  // Loop through consecutive directive comments
   while (currentIndex < passageText.length) {
     const remainingText = passageText.substring(currentIndex);
     const match = remainingText.match(directiveRegex);
-    if (!match) break;
+    if (!match) break; // Stop as soon as no more directives follow
 
     const directiveType = match[1].toLowerCase();
     const payload = match[2].trim();
 
-    // Parse comma-separated list: type:value
+    // Supports both single-entry lines and comma-separated entries
     const items = payload.split(",").map(s => s.trim()).filter(Boolean);
     for (const item of items) {
       if (!item.includes(":")) continue;
@@ -391,7 +392,7 @@ function parseTrailingDirectives(passageText, startIndex) {
           value: value ? value.trim() : "",
           inverse: inverse
         });
-      } else if (directiveType === "actions") {
+      } else if (directiveType === "action") {
         actions.push({
           type: type.trim(),
           value: value ? value.trim() : ""
@@ -399,7 +400,7 @@ function parseTrailingDirectives(passageText, startIndex) {
       }
     }
 
-    // Advance past this comment block
+    // Advance index past this entire comment block
     currentIndex += match[0].length;
   }
 
