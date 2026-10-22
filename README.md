@@ -1,13 +1,11 @@
-# Format Server
+# Add Format Server
 
-## Start Format server
-In Terminal 
+1. In Terminal 
 ```
 npm start
 ```
 
-## Add Story Format
-In Twine, add Story Format:
+2. In Twine, add Story Format:
 ```
 http://localhost:3000/format.js
 ```
