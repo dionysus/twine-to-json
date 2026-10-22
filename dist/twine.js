@@ -81,8 +81,12 @@ function processPassageElement(passageElement, format) {
     // tags: passageMeta.tags,
     pid: passageMeta.pid,
   };
-  result.meta = parseMetaTags(passageMeta.tags)
-  result.text = passageElement.innerText.trim();
+  result.meta = parseMetaTags(passageMeta.tags);
+
+  const rawContent = passageElement.textContent || passageElement.innerText || "";
+  result.text = rawContent.trim();
+  // result.text = passageElement.innerText.trim();
+
   Object.assign(result, processPassageText(result.text, format));
   result.cleanText = sanitizeText(
     result.text,
@@ -101,63 +105,86 @@ function processPassageText(passageText, format) {
     result.hooks = [];
   }
   let currentIndex = 0;
+
+  
   while (currentIndex < passageText.length) {
     const maybeLink = extractLinksAtIndex(passageText, currentIndex);
     if (maybeLink) {
       result.links.push(maybeLink);
       currentIndex += maybeLink.original.length;
+      continue; // Jump to next token immediately without adding +1
     }
+
     if (format !== FORMAT_HARLOWE_3) {
       currentIndex += 1;
       continue;
     }
+
     const maybeLeftHook = extractLeftHooksAtIndex(passageText, currentIndex);
     if (maybeLeftHook) {
       result.hooks.push(maybeLeftHook);
       currentIndex += maybeLeftHook.original.length;
+      continue;
     }
-    currentIndex += 1;
+
     const maybeHook = extractHooksAtIndex(passageText, currentIndex);
     if (maybeHook) {
       result.hooks.push(maybeHook);
       currentIndex += maybeHook.original.length;
+      continue;
     }
+
+    // Advance by one only if no tokens matched
+    currentIndex += 1;
+  
   }
+
+
   return result;
 }
+
 
 function extractLinksAtIndex(passageText, currentIndex) {
   const currentChar = passageText[currentIndex];
   const nextChar = passageText[currentIndex + 1];
+
   if (currentChar === "[" && nextChar === "[") {
     const link = getSubstringBetweenBrackets(passageText, currentIndex + 1);
     const leftSplit = link.split("<-", 2);
     const rightSplit = link.split("->", 2);
-    const original = passageText.substring(
-      currentIndex,
-      currentIndex + link.length + 4,
-    );
+    
+    const linkEndIndex = currentIndex + link.length + 4; // After "]]"
+
+    // Look ahead for trailing <!--showif:...--> and <!--action:...-->
+    const directives = parseTrailingDirectives(passageText, linkEndIndex);
+    
+    // original covers both the link and its trailing comments
+    const original = passageText.substring(currentIndex, directives.endIndex);
+
+    let text = "";
+    let targetId = "";
+
     if (leftSplit.length === 2) {
-      return {
-        text: leftSplit[1].trim(),
-        targetId: leftSplit[0].trim(),
-        original: original,
-      };
+      text = leftSplit[1].trim();
+      targetId = leftSplit[0].trim();
     } else if (rightSplit.length === 2) {
-      return {
-        text: rightSplit[0].trim(),
-        targetId: rightSplit[1].trim(),
-        original: original,
-      };
+      text = rightSplit[0].trim();
+      targetId = rightSplit[1].trim();
     } else {
-      return {
-        text: link.trim(),
-        targetId: link.trim(),
-        original: original,
-      };
+      text = link.trim();
+      targetId = link.trim();
     }
+
+    return {
+      text: text,
+      target_id: targetId,
+      show_if: directives.show_if,
+      actions: directives.actions,
+      original: original
+    };
   }
 }
+
 
 function extractLeftHooksAtIndex(passageText, currentIndex) {
   const regexAlphaNum = /[a-z0-9]+/i;
@@ -199,13 +226,17 @@ const default_meta = {
 
 // parses "ABC:XYZ" tags if valid 
 function parseMetaTags(tags) {
-  const raw_tags = tags.split(" ")
-  let metadata = {}
-  for (const tag of raw_tags) {
-    let [key, value] = tag.split(delimiter, 2)
-    metadata[key] = value
+  if (!tags || typeof tags !== "string") {
+    return {};
   }
-  return metadata
+  const raw_tags = tags.trim().split(/\\s+/);
+  let metadata = {};
+  for (const tag of raw_tags) {
+    if (!tag.includes(delimiter)) continue;
+    let [key, value] = tag.split(delimiter, 2);
+    metadata[key] = value;
+  }
+  return metadata;
 }
 
 
@@ -322,6 +353,62 @@ function getSubstringBetweenBrackets(
   return substring;
 }
 
+
+function parseTrailingDirectives(passageText, startIndex) {
+  // Matches <!--showif: ...--> or <!--action: ...--> (tolerant of --> and --!>)
+  // const directiveRegex = /^\\s*<!--(showif|actions):\\s*([\\s\\S]*?)--[!>]/i;
+  const directiveRegex = /^\\s*<!--(showif|actions):\\s*([\\s\\S]*?)--!?>/i;
+
+  
+  const show_if = [];
+  const actions = [];
+  let currentIndex = startIndex;
+
+  while (currentIndex < passageText.length) {
+    const remainingText = passageText.substring(currentIndex);
+    const match = remainingText.match(directiveRegex);
+    if (!match) break;
+
+    const directiveType = match[1].toLowerCase();
+    const payload = match[2].trim();
+
+    // Parse comma-separated list: type:value
+    const items = payload.split(",").map(s => s.trim()).filter(Boolean);
+    for (const item of items) {
+      if (!item.includes(":")) continue;
+
+      let trimmed = item;
+      let inverse = false;
+      if (trimmed.startsWith("!")) {
+        inverse = true;
+        trimmed = trimmed.substring(1);
+      }
+
+      const [type, value] = trimmed.split(":", 2);
+      if (directiveType === "showif") {
+        show_if.push({
+          type: type.trim(),
+          value: value ? value.trim() : "",
+          inverse: inverse
+        });
+      } else if (directiveType === "actions") {
+        actions.push({
+          type: type.trim(),
+          value: value ? value.trim() : ""
+        });
+      }
+    }
+
+    // Advance past this comment block
+    currentIndex += match[0].length;
+  }
+
+  return {
+    show_if,
+    actions,
+    endIndex: currentIndex
+  };
+}
         </script>
 	</head>
 	<body>
