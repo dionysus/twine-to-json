@@ -1,3 +1,7 @@
+# Add prebuilt Format
+
+[Download the Build File](https://github.com/dionysus/twine-to-json/blob/master/dist/twine.js)
+
 # Add Format Server
 
 1. In Terminal
