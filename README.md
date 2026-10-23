@@ -1,6 +1,6 @@
 # Add prebuilt Format
 
-[Download the Build File](https://github.com/dionysus/twine-to-json/blob/master/dist/twine.js)
+[Download the Build File](/dist/twine.js)
 
 # Add Format Server
 
